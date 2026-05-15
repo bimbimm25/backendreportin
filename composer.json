@@ -1,0 +1,23 @@
+{
+    "name": "bima/project-lomba",
+    "description": "API dengan JWT auntentikasi",
+    "type": "project",
+    "require": {
+        "firebase/php-jwt": "^7.0",
+        "kreait/firebase-php": "^0.6.2",
+        "vlucas/phpdotenv": "^5.6"
+    },
+    "license": "MIT",
+    "autoload": {
+        "psr-4": {
+            "Bima\\ProjectLomba\\": "src/"
+        }
+    },
+    "authors": [
+        {
+            "name": "bimbimm25",
+            "email": "bimajeprak2509@gmail.com"
+        }
+    ],
+    "minimum-stability": "stable"
+}
