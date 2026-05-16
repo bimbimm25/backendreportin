@@ -1,4 +1,5 @@
 .env
 /vendor/
-composer.lock
-composer.json
+rekaman_nova.txt
+debug_nova.txt
+debug_ai.txt
