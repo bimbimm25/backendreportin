@@ -1,6 +1,17 @@
 <?php
 // 1. Pengaturan Header & CORS agar React bisa mengaksesnya
-header("Access-Control-Allow-Origin: *");
+$origin = isset($_SERVER['HTTP_ORIGIN']) ? $_SERVER['HTTP_ORIGIN'] : '';
+
+
+$allowed_domains = [
+    'http://localhost:5173',
+    'https://website-reportin-kamu.vercel.app'
+];
+
+
+if (in_array($origin, $allowed_domains)) {
+    header("Access-Control-Allow-Origin: $origin");
+}
 header("Content-Type: application/json; charset=UTF-8");
 header("Access-Control-Allow-Methods: PUT, PATCH, POST");
 header("Access-Control-Allow-Headers: Content-Type, Access-Control-Allow-Headers, Authorization, X-Requested-With");
