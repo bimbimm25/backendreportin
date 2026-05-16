@@ -1,0 +1,1 @@
+Sinyal Diterima: {"judulLaporan": "Jalan di depan balai desa rusak", "deskripsi": "Disana jalananya harus segera diperbaiki", "kategoriLaporan": "Lingkungan", "isiAlamat": "Ds. Masangan Wetan"}

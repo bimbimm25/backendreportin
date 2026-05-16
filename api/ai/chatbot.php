@@ -1,7 +1,15 @@
 <?php
-require 'vendor/autoload.php';
+header("Access-Control-Allow-Origin: http://localhost:5173");
+header("Access-Control-Allow-Methods: POST, OPTIONS");
+header("Access-Control-Allow-Headers: Content-Type, Authorization, X-Requested-With"); 
+header("Content-Type: application/json; charset=utf-8");
+
+// 1. MUNDUR 2 TINGKAT untuk mengambil vendor di folder utama (apireportin/vendor)
+require '../../vendor/autoload.php';
 
 use Dotenv\Dotenv;
+use Firebase\JWT\JWT;
+use Firebase\JWT\Key;
 
 // ========================================
 // LOAD ENVIRONMENT VARIABLES
@@ -12,6 +20,7 @@ $dotenv->load();
 $apiKey = $_ENV['GEMINI_API_KEY'] ?? null;
 
 if (!$apiKey) {
+    ob_clean(); 
     echo json_encode([
         "status" => "error",
         "reply" => "API Key tidak ditemukan di konfigurasi server."
@@ -19,123 +28,140 @@ if (!$apiKey) {
     exit();
 }
 
-// ========================================
-// CORS
-// ========================================
-header("Access-Control-Allow-Origin: http://localhost:5173");
-header("Access-Control-Allow-Methods: POST, OPTIONS");
-header("Access-Control-Allow-Headers: Content-Type");
-header("Content-Type: application/json");
-
-// ========================================
-// HANDLE OPTIONS
-// ========================================
 if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
     http_response_code(200);
     exit();
 }
 
 // ========================================
+// AMBIL USER ID DARI JWT & TENTUKAN STATUS LOGIN
+// ========================================
+$userId = null;
+$status_login = "[STATUS: BELUM LOGIN]"; // Default status
+
+$headers = getallheaders();
+$authHeader = $headers['Authorization'] ?? $headers['authorization'] ?? '';
+
+if (!empty($authHeader)) {
+    if (preg_match('/Bearer\s(\S+)/', $authHeader, $matches)) {
+        $token = $matches[1];
+
+        try {
+            require_once '../../config/jwt.php';
+            $decoded = JWT::decode($token, new Key($key, 'HS256'));
+            
+            // Ambil ID
+            $userId = $decoded->id ?? $decoded->user_id ?? $decoded->data->id ?? null;
+            
+            // Jika ID berhasil didapatkan, ubah status menjadi sudah login
+            if ($userId) {
+                $status_login = "[STATUS: SUDAH LOGIN]";
+            }
+
+        } catch (Exception $e) {
+            error_log("JWT Decode Error: " . $e->getMessage());
+            // Status tetap [STATUS: BELUM LOGIN] jika token salah/expired
+        }
+    }
+}
+
+// ========================================
 // VALIDASI METHOD
 // ========================================
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-
+    ob_clean();
     echo json_encode([
         "status" => "error",
         "reply" => "Method tidak diizinkan"
     ]);
-
     exit();
 }
 
 // ========================================
 // AMBIL MESSAGE
 // ========================================
-
 $message = "";
 
-// FORM DATA
 if (isset($_POST['message'])) {
     $message = trim($_POST['message']);
 }
 
-// JSON
 if (empty($message)) {
-
     $json = json_decode(file_get_contents("php://input"), true);
-
     if (isset($json['message'])) {
         $message = trim($json['message']);
     }
 }
 
-// ========================================
-// VALIDASI MESSAGE
-// ========================================
 if (empty($message)) {
-
+    ob_clean();
     echo json_encode([
         "status" => "error",
         "reply" => "Pesan tidak boleh kosong"
     ]);
-
     exit();
 }
 
 // ========================================
-// API KEY
+// SYSTEM PROMPT BARU DENGAN ATURAN LOGIN
 // ========================================
-
-$apiKey = $_ENV['GEMINI_API_KEY'] ?? null;
-
-// ========================================
-// URL GEMINI
-// ========================================
-
-$url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=" . $apiKey;
-
-// ========================================
-// SYSTEM PROMPT
-// ========================================
-
 $systemPrompt = "
-Kamu adalah AI Assistant resmi untuk aplikasi ReportIn.
-
+Kamu adalah NOVA, AI Assistant resmi ReportIn.
 ReportIn adalah aplikasi pelaporan masyarakat berbasis web.
 
-Fitur utama ReportIn:
-- Membuat laporan masyarakat
-- Upload foto bukti
-- Tracking status laporan
-- Riwayat laporan
-- Statistik laporan
-- Peta laporan
+--- STATUS LOGIN USER ---
+Di setiap pesan, sistem akan menyisipkan indikator status user, yaitu: [STATUS: SUDAH LOGIN] atau [STATUS: BELUM LOGIN].
+ATURAN LOGIN SANGAT KETAT:
+1. Jika user meminta untuk dibuatkan laporan otomatis, kamu WAJIB mengecek status ini terlebih dahulu.
+2. Jika statusnya [STATUS: BELUM LOGIN], kamu DILARANG KERAS memproses laporan, menanyakan detail, atau mengeluarkan JSON. Kamu WAJIB menyuruh user untuk Login atau Register.
+    Contoh jawaban wajib jika belum login: 'Maaf, untuk dapat membuat laporan melalui NOVA, Anda harus Login terlebih dahulu ke dalam aplikasi. Silakan Login, atau lakukan Registrasi jika Anda belum memiliki akun.'
+3. Jika statusnya [STATUS: SUDAH LOGIN], barulah kamu boleh memproses laporan sesuai aturan di bawah.
 
-Tugas kamu:
-- Membantu user memahami fitur aplikasi
-- Membantu user membuat laporan 
-- membantu user membuat laporan secara otomatis
-- Menjawab pertanyaan tentang aplikasi
-- Menjawab dengan ramah dan profesional
-- Gunakan bahasa Indonesia
-- Jawaban singkat dan jelas
-- Jangan buat jawaban yang tidak relevan dengan aplikasi ReportIn
-- Jika ada yang tidak kamu ketahui, jawab dengan jujur bahwa kamu tidak tahu
-- Jika user meminta kamu untuk membuat laporan, tanyakan detail laporan seperti lokasi, deskripsi, dan foto bukti. Kemudian buat laporan tersebut secara otomatis untuk user.
-- Jangan buat laporan yang tidak jelas atau tidak lengkap. Pastikan laporan yang kamu buat memiliki detail yang cukup untuk diproses oleh tim ReportIn.
-- Jika ada pertanyaan yang tidak relevan dengan aplikasi ReportIn, jawab dengan sopan bahwa kamu hanya bisa membantu dengan pertanyaan seputar aplikasi ReportIn.
+--- KNOWLEDGE BASE (TENTANG REPORTIN) ---
+Gunakan informasi ini sebagai pedoman utama untuk menjawab pertanyaan seputar identitas, tujuan, dan fitur aplikasi:
+1. Latar Belakang: ReportIn hadir di era digital untuk memastikan suara masyarakat terdengar dan membawa dampak. Kami memangkas jarak antara masyarakat dan pihak pengelola untuk menciptakan ekosistem yang responsif, transparan, dan akuntabel.
+2. Visi: Menjadi platform digital terdepan yang menghubungkan kepedulian masyarakat dengan perbaikan lingkungan, demi terciptanya infrastruktur publik yang lebih layak dan merata bagi semua orang.
+3. Misi: Memberdayakan masyarakat melalui teknologi pelaporan yang mudah dan transparan, sekaligus menyediakan data akurat bagi pihak terkait agar permasalahan fasilitas umum ditindaklanjuti dengan cepat dan tepat sasaran.
+4. Fitur Utama ReportIn:
+    - PRIVATE IDENTITY: Fitur pelaporan anonim.
+    - FOKUS PADA PENGALAMAN PENGGUNA (UX).
+    - PANTAU LAPORAN DALAM SATU KLIK.
+    - CHATBOT AI (NOVA): Asisten AI interaktif yang memandu user dan membuat laporan otomatis melalui chat.
+5. Slogan Utama: 'ReportIn – Suaramu, Kendali di Tanganmu.'
+
+Fitur utama ReportIn: Membuat laporan masyarakat, Upload foto bukti, Tracking status laporan, Riwayat laporan, Statistik, Peta laporan.
+
+ATURAN SANGAT KETAT (WAJIB PATUH):
+1. JANGAN PERNAH bertele-tele. JANGAN PERNAH meminta konfirmasi ulang seperti 'Apakah Anda yakin?' atau 'Apakah ingin diproses sekarang?'.
+2. Jika pesan user sudah memiliki informasi Judul, Deskripsi, Lokasi, dan Kategori, DAN statusnya [STATUS: SUDAH LOGIN], kamu WAJIB LANGSUNG membuat laporan dan mengeluarkan blok |||JSON|||.
+3. Jika data dari user kurang (dan user sudah login), langsung tanyakan poin apa yang spesifik belum ada.
+4. JANGAN PERNAH menyisipkan teks atau karakter apapun di dalam blok |||JSON||| selain format JSON yang sudah ditentukan.
+
+--- KONDISI 1: JIKA USER BERTANYA 'CARA' ATAU PANDUAN MANUAL ---
+Jika user bertanya cara menggunakan aplikasi, cara membuat laporan manual, atau pertanyaan seputar fitur:
+- JANGAN meminta data laporan. 
+- JANGAN mengeluarkan kode JSON.
+- Jawablah dengan memberikan langkah-langkah yang jelas, terstruktur, dan ramah. (Boleh dijawab meskipun statusnya Belum Login).
+
+--- KONDISI 2: JIKA USER INGIN DIBUATKAN LAPORAN OTOMATIS OLEH NOVA ---
+Jika user memberikan kalimat yang mengandung data kejadian (misal: 'tolong laporkan...', 'ada kejadian...', 'judulnya...'):
+- CEK STATUS LOGIN TERLEBIH DAHULU. Jika [STATUS: BELUM LOGIN], tolak dan suruh login/register.
+- Jika [STATUS: SUDAH LOGIN] dan data kurang, langsung tanyakan poin apa yang spesifik belum ada.
+- JIKA DATA SUDAH LENGKAP, kamu WAJIB LANGSUNG membuat laporan dan mengeluarkan blok |||JSON||| di akhir jawaban.
+
+INSTRUKSI SANGAT PENTING:
+Jika user sudah memberikan SEMUA data dan SUDAH LOGIN, kamu WAJIB menyisipkan sinyal rahasia di baris paling bawah jawabanmu dengan format persis seperti ini:
+|||{\"judulLaporan\": \"[Judul dari user]\", \"deskripsi\": \"[Deskripsi dari user]\", \"kategoriLaporan\": \"[Kategori dari user]\", \"isiAlamat\": \"[Lokasi dari user]\"}|||
 ";
 
 // ========================================
-// PROMPT FINAL
+// PROMPT FINAL (Gabungkan status login dan pesan)
 // ========================================
-
-$finalPrompt = $systemPrompt . "\n\nUser: " . $message;
+$finalPrompt = $systemPrompt . "\n\nUser: " . $status_login . " " . $message;
 
 // ========================================
-// REQUEST DATA
+// REQUEST DATA FOR GEMINI API
 // ========================================
-
 $data = [
     "contents" => [
         [
@@ -148,67 +174,62 @@ $data = [
     ],
     "generationConfig" => [
         "temperature" => 0.7,
-        "maxOutputTokens" => 300
+        "maxOutputTokens" => 1000
     ]
 ];
 
-// ========================================
-// CURL
-// ========================================
+function callGeminiAPI(string $modelName, string $apiKey, array $payload): array
+{
+    $url = "https://generativelanguage.googleapis.com/v1beta/models/" . $modelName . ":generateContent?key=" . $apiKey;
 
-$ch = curl_init($url);
-
-curl_setopt_array($ch, [
-    CURLOPT_RETURNTRANSFER => true,
-    CURLOPT_POST => true,
-    CURLOPT_HTTPHEADER => [
-        "Content-Type: application/json"
-    ],
-    CURLOPT_POSTFIELDS => json_encode($data)
-]);
-
-$response = curl_exec($ch);
-
-// ========================================
-// ERROR CURL
-// ========================================
-
-if (curl_errno($ch)) {
-
-    echo json_encode([
-        "status" => "error",
-        "reply" => "Gagal terhubung ke AI"
+    $ch = curl_init($url);
+    curl_setopt_array($ch, [
+        CURLOPT_RETURNTRANSFER => true,
+        CURLOPT_POST => true,
+        CURLOPT_HTTPHEADER => [
+            "Content-Type: application/json"
+        ],
+        CURLOPT_POSTFIELDS => json_encode($payload)
     ]);
+
+    $response = curl_exec($ch);
+    $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+
+    if (curl_errno($ch)) {
+        curl_close($ch);
+        return ['error' => true, 'message' => 'Gagal terhubung ke server AI'];
+    }
 
     curl_close($ch);
+    return ['error' => false, 'http_code' => $httpCode, 'body' => json_decode($response, true)];
+}
+
+$primaryModel = "gemini-2.5-flash";
+$fallbackModel = "gemini-2.5-flash-8b"; // Diubah dari 3.1 lite karena 3.1 tidak tersedia via API biasa
+
+$apiResult = callGeminiAPI($primaryModel, $apiKey, $data);
+
+if (!$apiResult['error'] && $apiResult['http_code'] == 429) {
+    file_put_contents("debug_ai.txt", "Peringatan: Kuota $primaryModel habis! Berganti otomatis ke $fallbackModel..." . PHP_EOL, FILE_APPEND);
+    $apiResult = callGeminiAPI($fallbackModel, $apiKey, $data);
+}
+
+if ($apiResult['error']) {
+    ob_clean();
+    echo json_encode(["status" => "error", "reply" => $apiResult['message']]);
     exit();
 }
 
-curl_close($ch);
-
-// ========================================
-// DEBUG RESPONSE
-// ========================================
-
-$result = json_decode($response, true);
-
-// ========================================
-// ERROR GEMINI
-// ========================================
+$result = $apiResult['body'];
 
 if (isset($result['error'])) {
-
+    ob_clean();
     echo json_encode([
         "status" => "error",
-        "reply" => $result['error']['message']
+        "reply" => "API Error: " . $result['error']['message']
     ]);
-
     exit();
 }
-
-// ========================================
-// CEK RESPONSE GEMINI
-// ========================================
 
 $reply = "";
 
@@ -218,36 +239,84 @@ if (
     isset($result['candidates'][0]['content']['parts']) &&
     isset($result['candidates'][0]['content']['parts'][0]['text'])
 ) {
-
     $reply = $result['candidates'][0]['content']['parts'][0]['text'];
-
 } else {
-
-    // DEBUG RESPONSE ASLI
+    ob_clean();
     echo json_encode([
         "status" => "error",
         "reply" => "Format response Gemini berubah",
         "debug" => $result
     ]);
-
     exit();
 }
 
-// ========================================
-// FORMAT TEXT
-// ========================================
-
-$reply = nl2br($reply);
+file_put_contents("rekaman_nova.txt", "============= \nPESAN USER: " . $status_login . " " . $message . "\n\nJAWABAN NOVA:\n" . $reply . "\n\n", FILE_APPEND);
 
 // ========================================
-// RESPONSE
+// DETEKSI PEMBUATAN LAPORAN OTOMATIS
 // ========================================
+if (preg_match('/\|\|\|(.*?)\|\|\|/s', $reply, $matches)) {
+    
+    // BACKEND SECURITY: Pastikan yang eksekusi ini memiliki $userId (sudah login)
+    // Jika userId kosong, artinya user nge-bypass atau AI halusinasi -> BATALKAN INSERT
+    if ($userId) {
+        $jsonSignal = $matches[1];
+        $reportData = json_decode($jsonSignal, true);
 
+        file_put_contents("debug_nova.txt", "Sinyal Diterima: " . $jsonSignal . PHP_EOL, FILE_APPEND);
+
+        if ($reportData) {
+            $judulLaporan    = $reportData['judulLaporan'] ?? 'Laporan Tanpa Judul';
+            $deskripsi       = $reportData['deskripsi'] ?? '';
+            $kategoriLaporan = $reportData['kategoriLaporan'] ?? 'Lainnya';
+            $isiAlamat       = $reportData['isiAlamat'] ?? '';
+
+            $tanggalLaporan = date('Y-m-d');
+            $gambarLaporan  = 'no-image.png';
+            $status         = 'pending';
+
+            try {
+                $host = "localhost";
+                $dbname = "reportin_db"; 
+                $username = "root";
+                $password = "";
+
+                $pdo = new PDO("mysql:host=$host;dbname=$dbname;charset=utf8mb4", $username, $password);
+                $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+
+                $sql = "INSERT INTO reports 
+                        (user_id, tanggalLaporan, judulLaporan, deskripsi, kategoriLaporan, isiAlamat, gambarLaporan, status) 
+                        VALUES 
+                        (:user_id, :tgl, :judul, :desc, :kat, :alamat, :img, :stat)";
+
+                $stmt = $pdo->prepare($sql);
+                $stmt->execute([
+                    ':user_id' => $userId, 
+                    ':tgl'     => $tanggalLaporan,
+                    ':judul'   => $judulLaporan,
+                    ':desc'    => $deskripsi,
+                    ':kat'     => $kategoriLaporan,
+                    ':alamat'  => $isiAlamat,
+                    ':img'     => $gambarLaporan,
+                    ':stat'    => $status
+                ]);
+            } catch (PDOException $e) {
+                error_log("Database Insert Error: " . $e->getMessage());
+            }
+        }
+    } else {
+        // Jika ketahuan mencoba insert padahal belum login
+        error_log("Peringatan: Mencoba insert data padahal belum login.");
+    }
+
+    // Bersihkan reply dari teks |||JSON||| sebelum dikirim ke React
+    $reply = preg_replace('/\|\|\|.*?\|\|\|/s', '', $reply);
+    $reply = trim($reply);
+}
+
+ob_clean();
 echo json_encode([
     "status" => "success",
     "reply" => $reply
 ]);
-
 exit();
-
-?>

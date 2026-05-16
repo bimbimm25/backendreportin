@@ -1,0 +1,60 @@
+============= 
+PESAN USER: halo
+
+JAWABAN NOVA:
+Halo! Saya NOVA, AI Assistant resmi ReportIn. Ada yang bisa saya bantu terkait aplikasi pelaporan masyarakat ReportIn?
+
+============= 
+PESAN USER: buatkan aku laporan
+
+JAWABAN NOVA:
+Tentu, saya bisa bantu. Mohon informasikan Judul laporan, Deskripsi kejadian, Kategori laporan, dan Lokasi kejadiannya.
+
+============= 
+PESAN USER: buatkan aku laporan apakah bisa?bagaimana caranya
+
+JAWABAN NOVA:
+Tentu, Anda bisa membuat laporan! Ada dua cara untuk melakukannya di ReportIn:
+
+**1. Membuat Laporan Secara Manual melalui Aplikasi ReportIn:**
+Ini adalah cara standar untuk melaporkan kejadian.
+1. Pastikan Anda sudah Login ke dalam aplikasi ReportIn.
+2. Masuk ke halaman Dashboard atau menu 'Buat Laporan'.
+3. Isi formulir yang disediakan, mulai dari Judul, Kategori, Lokasi, hingga Deskripsi lengkap.
+4. Unggah foto bukti (jika ada) agar laporan lebih valid.
+5. Klik tombol 'Kirim' untuk menyimpan laporan Anda.
+
+**2. Membuat Laporan Otomatis melalui NOVA (Saya):**
+Anda juga bisa meminta saya, NOVA, untuk membuat laporan otomatis untuk Anda. Cukup berikan detail berikut dalam satu pesan:
+*   **Judul Laporan:** (Misalnya: "Jalan Berlubang")
+*   **Deskripsi Kejadian:** (Misalnya: "Ada lubang besar di tengah jalan")
+*   **Lokasi Kejadian:** (Misalnya: "Jalan Sudirman No. 10")
+*   **Kategori Laporan:** (Misalnya: "Infrastruktur", "Lingkungan", "Fasilitas Umum", dll.)
+
+Setelah Anda memberikan detail lengkap, saya akan langsung memproses laporan Anda.
+
+============= 
+PESAN USER: [STATUS: BELUM LOGIN] buatkan aku laporan dong
+
+JAWABAN NOVA:
+Maaf, untuk dapat membuat laporan melalui NOVA, Anda harus Login terlebih dahulu ke dalam aplikasi. Silakan Login, atau lakukan Registrasi jika Anda belum memiliki akun.
+
+============= 
+PESAN USER: [STATUS: SUDAH LOGIN] buatkan aku laporan dong
+
+JAWABAN NOVA:
+Tentu, saya bisa bantu membuatkan laporan. Untuk itu, saya membutuhkan beberapa informasi dari Anda:
+
+1.  **Judul Laporan:** (Misalnya: "Jalan Rusak di Depan Kantor Pos")
+2.  **Deskripsi Laporan:** (Jelaskan detail kejadian atau masalahnya)
+3.  **Lokasi Kejadian:** (Alamat lengkap atau deskripsi lokasi yang spesifik)
+4.  **Kategori Laporan:** (Pilih salah satu: Infrastruktur, Lingkungan, Fasilitas Umum, Keamanan, Lainnya)
+
+============= 
+PESAN USER: [STATUS: SUDAH LOGIN] Judul: Jalan di depan balai desa rusak, Deskripsi: Disana jalananya harus segera diperbaiki, Lokasi: Ds. Masangan Wetan, Kategori, Lingkungan
+
+JAWABAN NOVA:
+Laporan Anda telah berhasil dibuat. Berikut detail laporan yang terekam:
+
+|||{"judulLaporan": "Jalan di depan balai desa rusak", "deskripsi": "Disana jalananya harus segera diperbaiki", "kategoriLaporan": "Lingkungan", "isiAlamat": "Ds. Masangan Wetan"}|||
+
