@@ -5,16 +5,12 @@ header("Content-Type: application/json");
 
 // 2. Koneksi & Middleware
 require __DIR__ . "/../../config/koneksi.php";
-require __DIR__ . "/../../middleware/admin.php"; // Menjaga agar hanya admin yang bisa tarik data log
+require __DIR__ . "/../../middleware/admin.php"; 
 
 // 3. Pengaturan Limit
 $limit = isset($_GET['limit']) ? (int)$_GET['limit'] : 10;
 
-/**
- * 4. Query Gabungan (Incredible Mix)
- * Kita ambil adminName dari tabel logs (directAdminName)
- * DAN kita join ke tabel users (joinedUsername) sebagai backup.
- */
+
 $sql = "
     SELECT 
         logs.adminName AS directAdminName, 
@@ -33,12 +29,7 @@ $data = [];
 
 if ($query) {
     while($row = mysqli_fetch_assoc($query)) {
-        /**
-         * LOGIKA FALLBACK:
-         * 1. Cek apakah adminName di tabel logs ada isinya?
-         * 2. Kalau kosong (NULL), gunakan username hasil JOIN dari tabel users.
-         * 3. Kalau dua-duanya kosong, tulis 'System/Unknown'.
-         */
+        
         $finalName = $row['directAdminName'];
         
         if (empty($finalName)) {

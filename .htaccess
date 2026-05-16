@@ -1,0 +1,19 @@
+# 1. Blokir akses langsung ke file .env
+<Files .env>
+    Order allow,deny
+    Deny from all
+</Files>
+
+# 2. Blokir akses ke file sensitif lainnya (opsional tapi bagus untuk keamanan)
+<FilesMatch "^\.">
+    Order allow,deny
+    Deny from all
+</FilesMatch>
+<Files composer.json>
+    Order allow,deny
+    Deny from all
+</Files>
+<Files composer.lock>
+    Order allow,deny
+    Deny from all
+</Files>

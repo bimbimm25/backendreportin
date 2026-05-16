@@ -7,8 +7,10 @@ require __DIR__ . "/../../vendor/autoload.php";
 
 
 use Firebase\JWT\JWT;
+$dotenv = Dotenv\Dotenv::createImmutable(__DIR__ . "/../../");
+$dotenv->load();
 
-$key = "RAHASIA_SUPER_SECRET_KEY_2026_VERY_LONG_32_CHARS_MINIMUM";
+$key = $_ENV['SECRET_KEY_JWT'];
 
 // Ambil input JSON
 $inputJSON = file_get_contents("php://input");

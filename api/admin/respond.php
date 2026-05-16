@@ -11,7 +11,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'OPTIONS') {
     exit();
 }
 
-/// 2. Koneksi & Middleware (PENTING: middleware/admin.php harus dipanggil untuk dapat $decoded)
+
 require __DIR__ . "/../../config/koneksi.php";
 require __DIR__ . "/../../middleware/admin.php"; 
 

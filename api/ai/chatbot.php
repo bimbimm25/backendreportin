@@ -1,5 +1,17 @@
 <?php
-header("Access-Control-Allow-Origin: http://localhost:5173");
+$origin = isset($_SERVER['HTTP_ORIGIN']) ? $_SERVER['HTTP_ORIGIN'] : '';
+
+
+$allowed_domains = [
+    'http://localhost:5173',
+    'https://website-reportin-kamu.vercel.app'
+];
+
+
+if (in_array($origin, $allowed_domains)) {
+    header("Access-Control-Allow-Origin: $origin");
+}
+
 header("Access-Control-Allow-Methods: POST, OPTIONS");
 header("Access-Control-Allow-Headers: Content-Type, Authorization, X-Requested-With"); 
 header("Content-Type: application/json; charset=utf-8");
@@ -11,11 +23,14 @@ use Dotenv\Dotenv;
 use Firebase\JWT\JWT;
 use Firebase\JWT\Key;
 
+
 // ========================================
 // LOAD ENVIRONMENT VARIABLES
 // ========================================
-$dotenv = Dotenv::createImmutable(__DIR__);
+$dotenv = Dotenv::createImmutable(__DIR__ . "/../../");
 $dotenv->load();
+
+$SECRET_KEY_JWT = $_ENV['SECRET_KEY_JWT'] ?? null;
 
 $apiKey = $_ENV['GEMINI_API_KEY'] ?? null;
 
@@ -47,8 +62,8 @@ if (!empty($authHeader)) {
         $token = $matches[1];
 
         try {
-            require_once '../../config/jwt.php';
-            $decoded = JWT::decode($token, new Key($key, 'HS256'));
+            
+            $decoded = JWT::decode($token, new Key($SECRET_KEY_JWT, 'HS256'));
             
             // Ambil ID
             $userId = $decoded->id ?? $decoded->user_id ?? $decoded->data->id ?? null;

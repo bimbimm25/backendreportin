@@ -1,4 +1,4 @@
-/api/ai/.env
 .env
 /vendor/
-node_modules/
+composer.lock
+composer.json
