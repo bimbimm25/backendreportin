@@ -8,7 +8,7 @@ require __DIR__ . "/../../vendor/autoload.php";
 
 use Firebase\JWT\JWT;
 $dotenv = Dotenv\Dotenv::createImmutable(__DIR__ . "/../../");
-$dotenv->load();
+$dotenv->safeLoad();
 
 $key = $_ENV['SECRET_KEY_JWT'];
 

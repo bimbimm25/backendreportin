@@ -3,8 +3,12 @@ require __DIR__ . "/../vendor/autoload.php";
 
 use Firebase\JWT\JWT;
 use Firebase\JWT\Key;
+use Dotenv\Dotenv;
 
-$key = "RAHASIA_SUPER_SECRET_KEY_2026_VERY_LONG_32_CHARS_MINIMUM";
+$dotenv = Dotenv::createImmutable(__DIR__ . "/..");
+$dotenv->safeLoad();
+
+$key = $_ENV['SECRET_KEY_JWT'];
 
 $headers = getallheaders();
 

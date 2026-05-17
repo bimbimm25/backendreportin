@@ -28,7 +28,7 @@ use Firebase\JWT\Key;
 // LOAD ENVIRONMENT VARIABLES
 // ========================================
 $dotenv = Dotenv::createImmutable(__DIR__ . "/../../");
-$dotenv->load();
+$dotenv->safeLoad();
 
 $SECRET_KEY_JWT = $_ENV['SECRET_KEY_JWT'] ?? null;
 
