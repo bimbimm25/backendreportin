@@ -211,13 +211,17 @@ function callGeminiAPI(string $modelName, string $apiKey, array $payload): array
 
     $ch = curl_init($url);
     curl_setopt_array($ch, [
-        CURLOPT_RETURNTRANSFER => true,
-        CURLOPT_POST => true,
-        CURLOPT_HTTPHEADER => [
-            "Content-Type: application/json"
-        ],
-        CURLOPT_POSTFIELDS => json_encode($payload)
-    ]);
+    CURLOPT_RETURNTRANSFER => true,
+    CURLOPT_POST => true,
+    CURLOPT_HTTPHEADER => [
+        "Content-Type: application/json"
+    ],
+    CURLOPT_POSTFIELDS => json_encode($payload),
+    
+    
+    CURLOPT_SSL_VERIFYPEER => false,
+    CURLOPT_SSL_VERIFYHOST => false
+]);
 
     $response = curl_exec($ch);
     $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
@@ -287,7 +291,7 @@ if (preg_match('/\|\|\|(.*?)\|\|\|/s', $reply, $matches)) {
     // BACKEND SECURITY: Pastikan yang eksekusi ini memiliki $userId (sudah login)
     if ($userId) {
         global $conn;
-        
+
         $jsonSignal = $matches[1];
         $reportData = json_decode($jsonSignal, true);
 
