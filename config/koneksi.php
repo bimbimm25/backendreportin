@@ -1,15 +1,15 @@
 <?php
-// Ambil data dari file .env yang sudah kamu buat
-$host = $_ENV['DB_HOST'];
-$user = $_ENV['DB_USER'];
-$pass = $_ENV['DB_PASS'];
-$db   = $_ENV['DB_NAME'];
-$port = $_ENV['DB_PORT']; // Parameter baru untuk port Railway
 
-// Masukkan $port sebagai parameter ke-5
+$host = getenv('DB_HOST');
+$user = getenv('DB_USER');
+$pass = getenv('DB_PASS');
+$db   = getenv('DB_NAME');
+$port = getenv('DB_PORT');
+
 $conn = mysqli_connect($host, $user, $pass, $db, $port);
 
 if (!$conn) {
-    die("Koneksi ke Railway gagal: " . mysqli_connect_error());
+
+    die("Koneksi Database Gagal: " . mysqli_connect_error());
 }
 ?>
