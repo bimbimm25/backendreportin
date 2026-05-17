@@ -285,54 +285,39 @@ file_put_contents("rekaman_nova.txt", "============= \nPESAN USER: " . $status_l
 if (preg_match('/\|\|\|(.*?)\|\|\|/s', $reply, $matches)) {
     
     // BACKEND SECURITY: Pastikan yang eksekusi ini memiliki $userId (sudah login)
-    // Jika userId kosong, artinya user nge-bypass atau AI halusinasi -> BATALKAN INSERT
     if ($userId) {
+        global $conn;
+        
         $jsonSignal = $matches[1];
         $reportData = json_decode($jsonSignal, true);
 
         file_put_contents("debug_nova.txt", "Sinyal Diterima: " . $jsonSignal . PHP_EOL, FILE_APPEND);
 
         if ($reportData) {
-            $judulLaporan    = $reportData['judulLaporan'] ?? 'Laporan Tanpa Judul';
-            $deskripsi       = $reportData['deskripsi'] ?? '';
-            $kategoriLaporan = $reportData['kategoriLaporan'] ?? 'Lainnya';
-            $isiAlamat       = $reportData['isiAlamat'] ?? '';
+            // Ambil data dari AI dan amankan dari SQL Injection
+            $judulLaporan    = mysqli_real_escape_string($conn, $reportData['judulLaporan'] ?? 'Laporan Tanpa Judul');
+            $deskripsi       = mysqli_real_escape_string($conn, $reportData['deskripsi'] ?? '');
+            $kategoriLaporan = mysqli_real_escape_string($conn, $reportData['kategoriLaporan'] ?? 'Lainnya');
+            $isiAlamat       = mysqli_real_escape_string($conn, $reportData['isiAlamat'] ?? '');
 
             $tanggalLaporan = date('Y-m-d');
             $gambarLaporan  = 'no-image.png';
             $status         = 'pending';
 
-            try {
-                $host = "localhost";
-                $dbname = "reportin_db"; 
-                $username = "root";
-                $password = "";
+            // GUNAKAN $conn MYSQLI BAWAAN KONEKSI.PHP YANG SUDAH TERHUBUNG KE RAILWAY
+            $sql = "INSERT INTO reports 
+                    (user_id, tanggalLaporan, judulLaporan, deskripsi, kategoriLaporan, isiAlamat, gambarLaporan, status) 
+                    VALUES 
+                    ('$userId', '$tanggalLaporan', '$judulLaporan', '$deskripsi', '$kategoriLaporan', '$isiAlamat', '$gambarLaporan', '$status')";
 
-                $pdo = new PDO("mysql:host=$host;dbname=$dbname;charset=utf8mb4", $username, $password);
-                $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+            $executeInsert = mysqli_query($conn, $sql);
 
-                $sql = "INSERT INTO reports 
-                        (user_id, tanggalLaporan, judulLaporan, deskripsi, kategoriLaporan, isiAlamat, gambarLaporan, status) 
-                        VALUES 
-                        (:user_id, :tgl, :judul, :desc, :kat, :alamat, :img, :stat)";
-
-                $stmt = $pdo->prepare($sql);
-                $stmt->execute([
-                    ':user_id' => $userId, 
-                    ':tgl'     => $tanggalLaporan,
-                    ':judul'   => $judulLaporan,
-                    ':desc'    => $deskripsi,
-                    ':kat'     => $kategoriLaporan,
-                    ':alamat'  => $isiAlamat,
-                    ':img'     => $gambarLaporan,
-                    ':stat'    => $status
-                ]);
-            } catch (PDOException $e) {
-                error_log("Database Insert Error: " . $e->getMessage());
+            if (!$executeInsert) {
+                // Catat di log jika query MySQLi gagal
+                error_log("Database Insert Error via MySQLi: " . mysqli_error($conn));
             }
         }
     } else {
-        // Jika ketahuan mencoba insert padahal belum login
         error_log("Peringatan: Mencoba insert data padahal belum login.");
     }
 
