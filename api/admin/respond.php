@@ -5,7 +5,7 @@ $origin = isset($_SERVER['HTTP_ORIGIN']) ? $_SERVER['HTTP_ORIGIN'] : '';
 
 $allowed_domains = [
     'http://localhost:5173',
-    'https://report-in-fe.vercel.app/'
+    'https://report-in-fe.vercel.app'
 ];
 
 
