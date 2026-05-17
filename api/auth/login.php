@@ -10,7 +10,13 @@ use Firebase\JWT\JWT;
 $dotenv = Dotenv\Dotenv::createImmutable(__DIR__ . "/../../");
 $dotenv->safeLoad();
 
-$key = $_ENV['SECRET_KEY_JWT'];
+// Coba ambil dari Railway dulu
+$SECRET_KEY_JWT = getenv('SECRET_KEY_JWT');
+
+// Jika kosong (artinya kamu sedang run di localhost pakai XAMPP), ambil dari Dotenv
+if (!$SECRET_KEY_JWT) {
+    $SECRET_KEY_JWT = $_ENV['SECRET_KEY_JWT'] ?? null;
+}
 
 // Ambil input JSON
 $inputJSON = file_get_contents("php://input");
@@ -58,7 +64,7 @@ $payload = [
     "exp"   => time() + (60 * 60 * 24)
 ];
 
-$token = JWT::encode($payload, $key, 'HS256');
+$token = JWT::encode($payload, $SECRET_KEY_JWT, 'HS256');
 
 // Response sukses
 echo json_encode([

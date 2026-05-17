@@ -30,9 +30,21 @@ use Firebase\JWT\Key;
 $dotenv = Dotenv::createImmutable(__DIR__ . "/../../");
 $dotenv->safeLoad();
 
-$SECRET_KEY_JWT = $_ENV['SECRET_KEY_JWT'] ?? null;
 
-$apiKey = $_ENV['GEMINI_API_KEY'] ?? null;
+$SECRET_KEY_JWT = getenv('SECRET_KEY_JWT');
+
+
+if (!$SECRET_KEY_JWT) {
+    $SECRET_KEY_JWT = $_ENV['SECRET_KEY_JWT'] ?? null;
+}
+
+
+$apiKey = getenv('GEMINI_API_KEY');
+
+if (!$apiKey) {
+
+    $apiKey = $_ENV['GEMINI_API_KEY'] ?? null;
+}
 
 if (!$apiKey) {
     ob_clean(); 

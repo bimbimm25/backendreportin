@@ -8,7 +8,13 @@ use Dotenv\Dotenv;
 $dotenv = Dotenv::createImmutable(__DIR__ . "/..");
 $dotenv->safeLoad();
 
-$key = $_ENV['SECRET_KEY_JWT'];
+
+$SECRET_KEY_JWT = getenv('SECRET_KEY_JWT');
+
+
+if (!$SECRET_KEY_JWT) {
+    $SECRET_KEY_JWT = $_ENV['SECRET_KEY_JWT'] ?? null;
+}
 
 $headers = getallheaders();
 
@@ -21,7 +27,7 @@ if (!isset($headers['Authorization'])) {
 $token = str_replace("Bearer ", "", $headers['Authorization']);
 
 try {
-    $decoded = JWT::decode($token, new Key($key, 'HS256'));
+    $decoded = JWT::decode($token, new Key($SECRET_KEY_JWT, 'HS256'));
 
     // 🔥 CEK ADMIN DI SINI
     if ($decoded->role !== 'admin') {
