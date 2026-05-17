@@ -1,12 +1,12 @@
 <?php
-ini_set('display_errors', 0); 
+ini_set('display_errors', 0); // Matikan display error agar tidak merusak format JSON
 require __DIR__ . "/../../config/cors.php";
 header("Content-Type: application/json");
 
 require __DIR__ . "/../../config/koneksi.php";
 
 // ========================================================
-// 1. VALIDASI TOKEN (Mencegah Stuck & Mengatasi Blokir Cloud)
+// 1. VALIDASI TOKEN & AMBIL DATA USER YANG SEDANG LOGIN
 // ========================================================
 $authHeader = '';
 if (isset($_SERVER['HTTP_AUTHORIZATION'])) {
@@ -37,16 +37,16 @@ try {
     $tokenPayload = base64_decode($tokenParts[1]);
     $jwtPayload = json_decode($tokenPayload);
     
-    // Ambil data role untuk memastikan hanya ADMIN yang bisa menghapus
-    $role = isset($jwtPayload->role) ? strtolower($jwtPayload->role) : 'user';
-    $username_jwt = isset($jwtPayload->username) ? strtolower($jwtPayload->username) : '';
-    $is_admin = ($role === 'admin' || $role === 'superadmin' || strpos($username_jwt, 'admin') !== false);
+    // Ambil ID User yang sedang menekan tombol hapus dari payload JWT
+    $id_dari_jwt = $jwtPayload->id ?? $jwtPayload->user_id ?? $jwtPayload->id_admin ?? null;
 
-    if (!$is_admin) {
-        http_response_code(403);
-        echo json_encode(["status" => "error", "message" => "Akses ditolak, hanya Admin yang boleh menghapus."]);
+    if (!$id_dari_jwt) {
+        http_response_code(401);
+        echo json_encode(["status" => "error", "message" => "Token valid, tetapi ID user tidak ditemukan."]);
         exit;
     }
+
+    $user_id = mysqli_real_escape_string($conn, $id_dari_jwt); 
 
 } catch (Exception $e) {
     http_response_code(401);
@@ -55,21 +55,40 @@ try {
 }
 
 // ========================================================
-// 2. PROSES EKSEKUSI PENGHAPUSAN DATA
+// 2. PROSES VALIDASI KEPEMILIKAN LAPORAN (PROTEKSI USER)
 // ========================================================
 
-// Tangkap data JSON dari React
+// Tangkap data JSON dari React kamu
 $data = json_decode(file_get_contents("php://input"), true);
-$id = isset($data['id']) ? mysqli_real_escape_string($conn, $data['id']) : null;
+$id_laporan = isset($data['id']) ? mysqli_real_escape_string($conn, $data['id']) : null;
 
-if (!$id) {
+if (!$id_laporan) {
     http_response_code(400);
     echo json_encode(["status" => "error", "message" => "ID Laporan tidak ditemukan atau kosong."]);
     exit;
 }
 
-// Jalankan query delete
-$deleteQuery = mysqli_query($conn, "DELETE FROM reports WHERE id='$id'");
+// 🕵️‍♂️ Cek dulu ke database, apakah laporan ini benar-benar milik user_id yang sedang login?
+$checkOwnerQuery = mysqli_query($conn, "SELECT user_id FROM reports WHERE id='$id_laporan' LIMIT 1");
+$laporan = mysqli_fetch_assoc($checkOwnerQuery);
+
+if (!$laporan) {
+    http_response_code(404);
+    echo json_encode(["status" => "error", "message" => "Laporan tidak ditemukan di database."]);
+    exit;
+}
+
+// 🛑 JIKA user_id di laporan TIDAK SAMA dengan user_id di token JWT, TOLAK! (Termasuk jika diklik oleh Admin)
+if ($laporan['user_id'] !== $user_id) {
+    http_response_code(403);
+    echo json_encode(["status" => "error", "message" => "Akses ditolak! Kamu hanya boleh menghapus laporan milikmu sendiri."]);
+    exit;
+}
+
+// ========================================================
+// 3. JIKA LOLOS VALIDASI, JALANKAN EKSEKUSI PENGHAPUSAN
+// ========================================================
+$deleteQuery = mysqli_query($conn, "DELETE FROM reports WHERE id='$id_laporan'");
 
 if ($deleteQuery) {
     http_response_code(200);
