@@ -290,7 +290,10 @@ if (preg_match('/\|\|\|(.*?)\|\|\|/s', $reply, $matches)) {
     
     // BACKEND SECURITY: Pastikan yang eksekusi ini memiliki $userId (sudah login)
     if ($userId) {
-        global $conn;
+
+    global $conn; // Pastikan koneksi database tersedia
+        
+        // CATATAN: JANGAN ADALAKAN require ATAU global $conn DI SINI! Biarkan kosong saja.
 
         $jsonSignal = $matches[1];
         $reportData = json_decode($jsonSignal, true);
@@ -308,7 +311,6 @@ if (preg_match('/\|\|\|(.*?)\|\|\|/s', $reply, $matches)) {
             $gambarLaporan  = 'no-image.png';
             $status         = 'pending';
 
-            // GUNAKAN $conn MYSQLI BAWAAN KONEKSI.PHP YANG SUDAH TERHUBUNG KE RAILWAY
             $sql = "INSERT INTO reports 
                     (user_id, tanggalLaporan, judulLaporan, deskripsi, kategoriLaporan, isiAlamat, gambarLaporan, status) 
                     VALUES 
@@ -317,7 +319,6 @@ if (preg_match('/\|\|\|(.*?)\|\|\|/s', $reply, $matches)) {
             $executeInsert = mysqli_query($conn, $sql);
 
             if (!$executeInsert) {
-                // Catat di log jika query MySQLi gagal
                 error_log("Database Insert Error via MySQLi: " . mysqli_error($conn));
             }
         }
@@ -325,11 +326,11 @@ if (preg_match('/\|\|\|(.*?)\|\|\|/s', $reply, $matches)) {
         error_log("Peringatan: Mencoba insert data padahal belum login.");
     }
 
-    // Bersihkan reply dari teks |||JSON||| sebelum dikirim ke React
     $reply = preg_replace('/\|\|\|.*?\|\|\|/s', '', $reply);
     $reply = trim($reply);
 }
 
+// Bagian ini akan memastikan React selalu menerima JSON dan tidak akan memicu 'Unexpected end of JSON' lagi!
 ob_clean();
 echo json_encode([
     "status" => "success",
