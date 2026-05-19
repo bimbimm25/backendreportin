@@ -17,6 +17,7 @@ header("Access-Control-Allow-Headers: Content-Type, Authorization, X-Requested-W
 header("Content-Type: application/json; charset=utf-8");
 
 // 1. MUNDUR 2 TINGKAT untuk mengambil vendor di folder utama (apireportin/vendor)
+require __DIR__ . "/../../config/koneksi.php";
 require '../../vendor/autoload.php';
 
 use Dotenv\Dotenv;
